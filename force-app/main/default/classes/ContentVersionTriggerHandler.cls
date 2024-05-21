@@ -32,6 +32,26 @@ public with sharing class ContentVersionTriggerHandler {
             System.debug('~~~existingLinks: ' + existingLinks);
             Database.update(existingLinks);
         }
+
+        // Create ContentDistribution records with ExpiryDate set to null
+        List<ContentDistribution> publicFiles = new List<ContentDistribution>();
+        for (ContentVersion cv : cvIdMap.values()) {
+            publicFiles.add(new ContentDistribution(
+                Name = cv.Title,
+                ContentVersionId = cv.Id,
+                PreferencesAllowViewInBrowser = true,
+                PreferencesLinkLatestVersion = true,
+                PreferencesNotifyOnVisit = false,
+                PreferencesPasswordRequired = false,
+                PreferencesAllowOriginalDownload = true,
+                PreferencesExpires = false // Set ExpiryDate to null to disable expiration
+            ));
+        }
+        
+        if (!publicFiles.isEmpty()) {
+            System.debug('~~~publicFiles: ' + publicFiles);
+            Database.insert(publicFiles);
+        }
     }
     
 }
