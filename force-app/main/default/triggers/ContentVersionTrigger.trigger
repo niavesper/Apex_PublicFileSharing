@@ -3,7 +3,7 @@ trigger ContentVersionTrigger on ContentVersion (after insert, after update) {
     if (Trigger.isAfter) {
         if (Trigger.isInsert || Trigger.isUpdate) {
             System.debug('ContentVersionTrigger: After Insert or Update');
-            ContentVersionTriggerHandler.handleContentVersion(Trigger.new);
+            ContentVersionTriggerHandler.makePublicForAward(Trigger.new);
         }
     }
 }
