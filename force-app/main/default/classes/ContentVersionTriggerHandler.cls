@@ -1,24 +1,31 @@
 public with sharing class ContentVersionTriggerHandler {
-    public static void makePublicForAward(List<ContentVersion> records) {
+    public static void makeFilesPublicForAward(List<ContentVersion> records) {
+        // If there are no records, then there is nothing to do.
+        if (records == null || records.isEmpty()) {
+            return;
+        }
+
         Map<Id, ContentVersion> cvIdMap = new Map<Id, ContentVersion>();
+        Set<Id> cdIdSet = new Set<Id>();
+
+        // Loop through ContentVersions passed from the trigger in order to (1) build a map
+        // of their Ids and records; (2) build a set of add their ContentDocumentIds.
         for (ContentVersion cv : records) {
             cvIdMap.put(cv.Id, cv);
-        }
-        
-        System.debug('~~~makePublicForAward: ' + cvIdMap);
-        Set<Id> cdIdSet = new Set<Id>();
-        
-        
-        for (ContentVersion cv : cvIdMap.values()) {
             cdIdSet.add(cv.ContentDocumentId);
         }
-        
+
+        System.debug('~~~makePublicForAward: ' + cvIdMap);
+
+        // Get a list of ContentDocumentLinks for the ContentDocuments for which we need to make
+        // ContentDocumentLinks public.
         List<ContentDocumentLink> cdls = [
             SELECT Id, ContentDocumentId, Visibility, LinkedEntityId
             FROM ContentDocumentLink
             WHERE ContentDocumentId IN :cdIdSet
         ];
-        
+
+        // Loop through the ContentDocumentLinks and make them publicly viewable.
         List<ContentDocumentLink> existingLinks = new List<ContentDocumentLink>();
         for (ContentDocumentLink cdl : cdls) {
             if (cdl.LinkedEntityId.getSObjectType() == Award__c.getSObjectType()) {
@@ -27,31 +34,15 @@ public with sharing class ContentVersionTriggerHandler {
                 existingLinks.add(cdl);
             }
         }
-        
-        if (!existingLinks.isEmpty()) {
-            System.debug('~~~existingLinks: ' + existingLinks);
-            Database.update(existingLinks);
-        }
 
-        // Create ContentDistribution records with ExpiryDate set to null
-        List<ContentDistribution> publicFiles = new List<ContentDistribution>();
-        for (ContentVersion cv : cvIdMap.values()) {
-            publicFiles.add(new ContentDistribution(
-                Name = cv.Title,
-                ContentVersionId = cv.Id,
-                PreferencesAllowViewInBrowser = true,
-                PreferencesLinkLatestVersion = true,
-                PreferencesNotifyOnVisit = false,
-                PreferencesPasswordRequired = false,
-                PreferencesAllowOriginalDownload = true,
-                PreferencesExpires = false // Set ExpiryDate to null to disable expiration
-            ));
-        }
-        
-        if (!publicFiles.isEmpty()) {
-            System.debug('~~~publicFiles: ' + publicFiles);
-            Database.insert(publicFiles);
+        // If there are ContentDocumentLinks to update, then update them.
+        if (!existingLinks.isEmpty()) {
+            try {
+                System.debug('~~~existingLinks: ' + existingLinks);
+                update existingLinks;
+            } catch (DmlException e) {
+                    System.debug('Exception in makeFilesPublicForAward: ' + e.getMessage());
+            }
         }
     }
-    
 }
