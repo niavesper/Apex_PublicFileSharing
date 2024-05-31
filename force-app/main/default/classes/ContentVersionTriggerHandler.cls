@@ -41,7 +41,10 @@ public with sharing class ContentVersionTriggerHandler {
                 System.debug('~~~existingLinks: ' + existingLinks);
                 update existingLinks;
             } catch (DmlException e) {
-                    System.debug('Exception in makeFilesPublicForAward: ' + e.getMessage());
+                // Log the exception
+                System.debug('Exception in makeFilesPublicForAward: ' + e.getMessage());
+                System.debug('Failed records: ' + existingLinks);
+                System.debug('Stack trace: ' + e.getStackTraceString());
             }
         }
     }
