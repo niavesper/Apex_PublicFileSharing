@@ -1,58 +1,127 @@
-/* It's my understanding that it's not possible in this case to test the scenario when a ContentVersion is created because when that happens,
-ContentDocumentLink is created automatically, and there is no way to relate it to the Award__c record. When you add a file in the UI, you do it from the record's 
-page, in the Files related list. This lets the system "know" which record's ID to put in the LinkedEntityId on the ContentDocumentLink. There's no way to simulate
-this behavior via Apex, when the trigger is on ContentDocument, as far as I can tell. So by default, ContentDocumentLink gets related to the running user,
-and that means the conditions for setting visibility to the desired values ("if (cdl.LinkedEntityId.getSObjectType() == Award__c.getSObjectType())") are not met.
-
-*/
-
 @isTest
 public class ContentVersionTriggerHandlerTest {
     @testSetup
     static void setupTestData() {
-        // Create test data for Award__c
+        
+        // Create a test Award__c record
         Award__c award = new Award__c();
         insert award;
 
-        // Create test data for ContentVersion
-        ContentVersion contentVersion = new ContentVersion(
-            Title = 'TestBudget',
-            PathOnClient = 'TestBudget.csv',
-            VersionData = Blob.valueOf('Test Data'),
-            IsMajorVersion = true
-        );
-        insert contentVersion;
+        // Create test ContentVersion records
+        List<ContentVersion> contentVersions = new List<ContentVersion>();
+        for (Integer i = 0; i < 100; i++) {
+            ContentVersion contentVersionBulk = new ContentVersion(
+                Title = 'TestBudget' + i,
+                PathOnClient = 'TestBudget' + i + '.csv',
+                VersionData = Blob.valueOf('Test Data '),
+                IsMajorVersion = true
+            );
+            contentVersions.add(contentVersionBulk);
+        }
+        insert contentVersions;
+        
 
-        List<ContentDocument> documents = [SELECT Id, Title, LatestPublishedVersionId FROM ContentDocument where Title = 'TestBudget'];
+        List<ContentDocument> documents = [SELECT Id, Title, LatestPublishedVersionId FROM ContentDocument WHERE Title LIKE 'TestBudget%'];
 
         // Create ContentDocumentLink to link ContentDocument to Award__c
-        ContentDocumentLink cdl = new ContentDocumentLink(
-            ContentDocumentId = documents[0].Id,
-            LinkedEntityId = award.Id,
-            ShareType = 'I', // Initial share type
-            Visibility = 'InternalUsers'
-        );
-        insert cdl;
+        List<ContentDocumentLink> cdls = new List<ContentDocumentLink>();
+        for (ContentDocument doc : documents) {
+            ContentDocumentLink cdl = new ContentDocumentLink(
+                ContentDocumentId = doc.Id,
+                LinkedEntityId = award.Id,
+                ShareType = 'I', // Initial share type
+                Visibility = 'InternalUsers' // Initial visibility
+            );
+            cdls.add(cdl);
+        }
+        insert cdls;
+        System.debug('cdls: ' + cdls);
+        System.debug('cdls.size(): ' + cdls.size());
+
     }
     
     @isTest
-    static void testMakeFilesPublicForAwardAfterUpdate() {
+    static void testSingleContentVersionUpdate() {
+        
         // Retrieve the ContentVersion created in test setup
-        ContentVersion contentVersion = [SELECT Id, ContentDocumentId FROM ContentVersion LIMIT 1];
+        ContentVersion contentVersion = [SELECT Id, ContentDocumentId, Title FROM ContentVersion LIMIT 1];
 
+        Test.startTest();
         // Update the ContentVersion to trigger the after update logic
-        contentVersion.Title = 'TestBudget2';
+        contentVersion.Title = contentVersion.Title + 'Updated';
         update contentVersion;
+        Test.stopTest();
+        
 
-        // Verify that the ContentDocumentLink visibility has been updated
+        // Verify that the ContentDocumentLink visibility has been updated.
+        // Filtering by LinkedEntityId is necessary because the system auto-creates
+        // ContentDocumentLinks related to the running user, resulting in two
+        // CDLs per ContentVersion.
         ContentDocumentLink updatedLink = [
             SELECT Id, Visibility, ShareType
             FROM ContentDocumentLink
             WHERE ContentDocumentId = :contentVersion.ContentDocumentId
+            AND LinkedEntityId IN (SELECT Id FROM Award__c)
             LIMIT 1
         ];
+        
 
         System.assertEquals('AllUsers', updatedLink.Visibility, 'Visibility should be updated to AllUsers');
         System.assertEquals('V', updatedLink.ShareType, 'ShareType should be updated to V');
+    }
+
+    @isTest
+    static void testBulkContentVersionUpdate() {
+        
+        // Retrieve the ContentVersions created in test setup
+        List<ContentVersion> contentVersions = [SELECT Id, Title FROM ContentVersion WHERE Title LIKE 'TestBudget%'];
+        System.debug('contentVersions: ' + contentVersions); 
+        
+        // Update the ContentVersions to trigger the after update logic
+        for (ContentVersion contentVersion : contentVersions) {
+            contentVersion.Title = contentVersion.Title + 'Updated';
+        }
+
+        Test.startTest();
+        update contentVersions;
+        System.debug('contentVersions after title update: ' + contentVersions); 
+        Test.stopTest();
+
+        // Verify that the ContentDocumentLink visibility has been updated for all records
+        List<ContentVersion> contentVersionsBulk = [
+            SELECT ContentDocumentId
+            FROM ContentVersion
+            WHERE Title LIKE 'TestBudget%'
+        ];
+        System.debug('contentVersionsBulk: ' + contentVersionsBulk); 
+        System.debug('contentVersionsBulk.size(): ' + contentVersionsBulk.size());
+
+        List<Id> contentDocumentIds = new List<Id>();
+        for (ContentVersion cv : contentVersionsBulk) {
+            contentDocumentIds.add(cv.ContentDocumentId);
+        }
+        System.debug('contentDocumentIds: ' + contentDocumentIds); 
+        System.debug('contentDocumentIds.size(): ' + contentDocumentIds.size()); 
+
+        List<ContentDocumentLink> updatedLinks;
+
+        // Verify that the ContentDocumentLink visibility has been updated.
+        // Filtering by LinkedEntityId is necessary because the system auto-creates
+        // ContentDocumentLinks related to the running user, resulting in two
+        // CDLs per ContentVersion.    
+        updatedLinks = [
+        SELECT Id, Visibility, ShareType, LinkedEntityId
+        FROM ContentDocumentLink
+        WHERE ContentDocumentId IN :contentDocumentIds AND LinkedEntityId IN (SELECT Id FROM Award__c)
+    ];
+    System.debug('updatedLinks: ' + updatedLinks);
+    System.debug('updatedLinks.size(): ' + updatedLinks.size()); 
+
+        for (ContentDocumentLink updatedLink : updatedLinks) {
+            System.assertEquals('AllUsers', updatedLink.Visibility, 'Visibility should be updated to AllUsers');
+            System.assertEquals('V', updatedLink.ShareType, 'ShareType should be updated to V');
+            System.debug('updatedLink.ShareType: ' + updatedLink.ShareType); 
+            System.debug('updatedLinks.size() from assertions for loop: ' + updatedLinks.size()); // Debugs to 20
+        }
     }
 }

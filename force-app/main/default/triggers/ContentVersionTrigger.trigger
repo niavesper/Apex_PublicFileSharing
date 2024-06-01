@@ -1,3 +1,7 @@
 trigger ContentVersionTrigger on ContentVersion (after insert, after update) {
-                ContentVersionTriggerHandler.makeFilesPublicForAward(Trigger.new);
+    if (Trigger.isAfter) {
+        if (Trigger.isInsert || Trigger.isUpdate) {
+            ContentVersionTriggerHandler.makeFilesPublicForAward(Trigger.new);
         }
+    }
+}
