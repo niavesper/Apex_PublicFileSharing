@@ -1,4 +1,4 @@
-This code changes the default sharing setting for files uploaded torecords of a custom object Award__c from private to public. The requirement was to make files uploaded by internal users visible to authenticated Experience Cloud users by default.
+This code changes the default sharing setting for files uploaded to records of a custom object Award__c from private to public. The requirement was to make files uploaded by internal users visible to authenticated Experience Cloud users by default.
 
 ABOUT THE TEST CLASS:
 
