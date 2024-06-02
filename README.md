@@ -4,9 +4,9 @@ This code changes the default sharing setting for files uploaded to records of a
 
 The first attempt at building this functionality. The trigger is on the ContentVersion object. I kept experiencing trigger recursion error when running the test class, even when I changed the insert of test ContentVersion records to be in batches instead of all at once, which is why I tried to rebuild the functionality using the trigger on ContentDocumentLink.
 
-    About the test class:
+*About the test class:*
 
-    We are testing only the scenario where we update ContentVersion records, not insert them. It's my understanding that testing insertion is not possible because during insertion of a ContentVerison, ContentDocumentLink is created automatically, and there is no way to relate it to the Award__c record via Apex. When you add a file in the UI, you do it from the record's page, in the Files related list. This lets the system "know" which record's ID to put in the LinkedEntityId on the ContentDocumentLink. There's no way to simulate this behavior via Apex, when the trigger is on ContentDocument, as far as I can tell. So by default, ContentDocumentLink gets related to the running user, and there is no way to make it related to Award__c records via Apex. All this prevents us from being able to test the change to file sharing settings upon ContentVersion creation.
+We are testing only the scenario where we update ContentVersion records, not insert them. It's my understanding that testing insertion is not possible because during insertion of a ContentVerison, ContentDocumentLink is created automatically, and there is no way to relate it to the Award__c record via Apex. When you add a file in the UI, you do it from the record's page, in the Files related list. This lets the system "know" which record's ID to put in the LinkedEntityId on the ContentDocumentLink. There's no way to simulate this behavior via Apex, when the trigger is on ContentDocument, as far as I can tell. So by default, ContentDocumentLink gets related to the running user, and there is no way to make it related to Award__c records via Apex. All this prevents us from being able to test the change to file sharing settings upon ContentVersion creation.
 
 **feature/contentDocumentLinkTrigger BRANCH**
 
