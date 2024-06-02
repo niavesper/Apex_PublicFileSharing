@@ -1,17 +1,8 @@
 public with sharing class ContentVersionTriggerHandler {
         // Static counter to track trigger execution
         private static Integer triggerExecutionCount = 0;
-        // Static variable to prevent recursive execution
-        private static Boolean isExecuting = false;
     
         public static void makeFilesPublicForAward(List<ContentVersion> records) {
-            // If the trigger is already executing, don't execute again
-            if (isExecuting) {
-                return;
-            }
-    
-            // Set the isExecuting flag to true
-            isExecuting = true;
 
         // Increment the counter each time the method is called
         triggerExecutionCount++;
@@ -27,7 +18,6 @@ public with sharing class ContentVersionTriggerHandler {
         for (ContentVersion cv : records) {
             cdIdSet.add(cv.ContentDocumentId);
         }
-
         
         // Get a list of ContentDocumentLinks for the ContentDocuments for which we need to make
         // ContentDocumentLinks public.

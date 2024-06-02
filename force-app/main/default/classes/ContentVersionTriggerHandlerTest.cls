@@ -13,15 +13,26 @@ public class ContentVersionTriggerHandlerTest {
             ContentVersion contentVersionBulk = new ContentVersion(
                 Title = 'TestBudget' + i,
                 PathOnClient = 'TestBudget' + i + '.csv',
-                VersionData = Blob.valueOf('Test Data '),
-                IsMajorVersion = true
+                VersionData = Blob.valueOf('Test Data ' + i),
+                IsMajorVersion = true 
             );
             contentVersions.add(contentVersionBulk);
         }
-        insert contentVersions;
-        
+        // Insert in batches to avoid DML limits
+        if (contentVersions.size() == 50) { 
+            insert contentVersions;
+            contentVersions.clear(); // Empty the list for the next batch
+        }
+
+        // Insert any remaining records
+        if (!contentVersions.isEmpty()) {
+            insert contentVersions;
+        }
+
+        System.debug('contentVersions.size(): ' + contentVersions.size()); 
 
         List<ContentDocument> documents = [SELECT Id, Title, LatestPublishedVersionId FROM ContentDocument WHERE Title LIKE 'TestBudget%'];
+        System.debug('documents.size(): ' + documents.size());
 
         // Create ContentDocumentLink to link ContentDocument to Award__c
         List<ContentDocumentLink> cdls = new List<ContentDocumentLink>();
@@ -39,12 +50,17 @@ public class ContentVersionTriggerHandlerTest {
         System.debug('cdls.size(): ' + cdls.size());
 
     }
-    
+      
     @isTest
     static void testSingleContentVersionUpdate() {
         
-        // Retrieve the ContentVersion created in test setup
+         // Verify that test data is present
+         List<ContentVersion> contentVersions = [SELECT Id, ContentDocumentId, Title FROM ContentVersion];
+         System.debug('contentVersions in test method: ' + contentVersions);
+        
+        // Retrieve one of the ContentVersions created in test setup
         ContentVersion contentVersion = [SELECT Id, ContentDocumentId, Title FROM ContentVersion LIMIT 1];
+        
 
         Test.startTest();
         // Update the ContentVersion to trigger the after update logic
@@ -110,18 +126,16 @@ public class ContentVersionTriggerHandlerTest {
         // ContentDocumentLinks related to the running user, resulting in two
         // CDLs per ContentVersion.    
         updatedLinks = [
-        SELECT Id, Visibility, ShareType, LinkedEntityId
-        FROM ContentDocumentLink
-        WHERE ContentDocumentId IN :contentDocumentIds AND LinkedEntityId IN (SELECT Id FROM Award__c)
-    ];
-    System.debug('updatedLinks: ' + updatedLinks);
-    System.debug('updatedLinks.size(): ' + updatedLinks.size()); 
+            SELECT Id, Visibility, ShareType, LinkedEntityId
+            FROM ContentDocumentLink
+            WHERE ContentDocumentId IN :contentDocumentIds AND LinkedEntityId IN (SELECT Id FROM Award__c)
+        ];
+        System.debug('updatedLinks: ' + updatedLinks);
+        System.debug('updatedLinks.size(): ' + updatedLinks.size()); 
 
         for (ContentDocumentLink updatedLink : updatedLinks) {
             System.assertEquals('AllUsers', updatedLink.Visibility, 'Visibility should be updated to AllUsers');
             System.assertEquals('V', updatedLink.ShareType, 'ShareType should be updated to V');
-            System.debug('updatedLink.ShareType: ' + updatedLink.ShareType); 
-            System.debug('updatedLinks.size() from assertions for loop: ' + updatedLinks.size()); // Debugs to 20
         }
     }
 }
