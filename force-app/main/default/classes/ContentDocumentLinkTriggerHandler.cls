@@ -1,5 +1,5 @@
 public with sharing class ContentDocumentLinkTriggerHandler {
-    private static final String AWARD_PREFIX = 'a0O'; // Replace with actual prefix for Award__c
+    private static final String AWARD_PREFIX = 'a0O'; // Three-digit prefix for the Award__c object
     private static final String VISIBILITY_PUBLIC = 'AllUsers';
     private static final String SHARE_TYPE_VIEW = 'V';
 
