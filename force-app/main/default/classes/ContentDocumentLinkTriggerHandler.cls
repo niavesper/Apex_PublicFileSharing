@@ -1,3 +1,13 @@
+// Date:    06/11/2024
+// Author:  Ksenia Choate
+// Created with help from AI.
+// Description:   This code changes the default sharing setting for files uploaded
+// to records of a custom object Award__c from private to public. The requirement was
+// to make files uploaded by internal users visible to authenticated Experience Cloud users
+// by default, since 99% of files uploaded by internal users must be visible to external users.
+// See DTS Salesforce team Jira issue FORCE-656 / FORCE-672 for more context. 
+// History:   V.1
+
 public with sharing class ContentDocumentLinkTriggerHandler {
     private static final String AWARD_PREFIX = 'a0O'; // Three-digit prefix for the Award__c object
     private static final String VISIBILITY_PUBLIC = 'AllUsers';

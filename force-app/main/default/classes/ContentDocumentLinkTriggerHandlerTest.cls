@@ -1,3 +1,9 @@
+// Date:    06/11/2024
+// Author:  Ksenia Choate
+// Created with help from AI.
+// Description:   Class created to test ContentDocumentLinkTriggerHandler class.
+// History:   V.1
+
 @isTest
 public class ContentDocumentLinkTriggerHandlerTest {
     @testSetup
